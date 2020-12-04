@@ -1,70 +1,61 @@
-package com.cg.onlineeyeclinic.controller;
+package com.cg.onlineeyeclinic.service;
 
 import java.util.List;
 import java.util.Optional;
 
-import javax.validation.Valid;
+import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Service;
 
+import com.cg.onlineeyeclinic.exception.TestIdNotFoundException;
 import com.cg.onlineeyeclinic.model.Tests;
-import com.cg.onlineeyeclinic.service.ITestService;
+import com.cg.onlineeyeclinic.repository.ITestRepository;
 
-@RestController
-@RequestMapping("/api/Test")
-@Validated
-public class TestController {
-	
+@Service("name= testService")
+@Transactional
+public class TestServiceImpl implements ITestService {
+
+	private static final String ERROR_MESSAGE = "Test ID Not Found";
+
 	@Autowired
-	ITestService service;
-	
-    @PostMapping("/addTest")
-    public ResponseEntity<Tests> addTest(@Valid @RequestBody Tests tests){
-	tests=service.addTest(tests);
-	return new ResponseEntity<>(tests, HttpStatus.OK);
-    }
+	private ITestRepository testRepository;
 
-    @PutMapping("/updateTest")
-    public ResponseEntity<Tests> updateTest(@Valid @RequestBody Tests tests){
-	tests = service.updateTest(tests);
-	return new ResponseEntity<>(tests, HttpStatus.OK); 
-    }
-
-    @DeleteMapping("/deleteTestById/{id}")
-	public ResponseEntity<String> deleteTestById(@PathVariable("id") Integer id){
-		service.removeTest(id);
-		return new ResponseEntity<>("Test Deleted Successfully", HttpStatus.OK);
+	@Override
+	public Tests addTest(Tests tests) {
+		return testRepository.save(tests);
 	}
-    @GetMapping("/viewTestById/{id}")
-	public ResponseEntity<Optional<Tests>> viewTestById(@PathVariable("id") Integer id){
-		Optional<Tests> tes = service.viewTest(id);
-		return new ResponseEntity<>(tes, HttpStatus.OK);
-	}
-	
 
-//	@Override
-//	public List<Appointment> viewAppointments() {
-//		List<Appointment> allAppointments = repository.viewAppointments();
-//		return allAppointments;
-//	}
-//
-    
-  @GetMapping("/viewTestsList")
-  public ResponseEntity<List<Tests>> viewAllTests(){
-  return new ResponseEntity<>(service.viewTestsList(), HttpStatus.OK);
- }
+	@Override
+	public Tests updateTest(Tests tests) {
+		Integer testId = tests.getTestId();
+		Optional<Tests> test = testRepository.findById(testId);
+		if (test.isEmpty())
+			throw new TestIdNotFoundException(ERROR_MESSAGE);
+		return testRepository.save(tests);
+	}
+
+	@Override
+	public Tests removeTest(Integer testId) {
+		Optional<Tests> test = testRepository.findById(testId);
+		if (test.isEmpty())
+			throw new TestIdNotFoundException(ERROR_MESSAGE);
+		testRepository.deleteById(testId);
+		return null;
+	}
+
+	@Override
+	public Optional<Tests> viewTest(Integer testId) {
+		Optional<Tests> test = testRepository.findById(testId);
+		if (test.isEmpty())
+			throw new TestIdNotFoundException(ERROR_MESSAGE);
+		return test;
+
+	}
+
+	@Override
+	public List<Tests> viewTestsList() {
+		return testRepository.findAll();
+	}
 
 }
-
-
